@@ -37,7 +37,7 @@ parse_dates = [
 
 
 
-def run(
+def load_taxi_data(
     pg_user: str = 'root',
     pg_pass: str = 'root',
     pg_host: str = 'localhost',
@@ -91,8 +91,9 @@ if __name__ == '__main__':
     @click.option('--month', default=1, type=int, show_default=True, help='Month of dataset')
     @click.option('--target-table', default='yellow_taxi_data', show_default=True, help='Target table name')
     @click.option('--chunksize', default=100000, type=int, show_default=True, help='CSV read chunksize')
+
     def main(pg_user, pg_pass, pg_host, pg_port, pg_db, year, month, target_table, chunksize):
-        run(
+        load_taxi_data(
             pg_user=pg_user,
             pg_pass=pg_pass,
             pg_host=pg_host,
