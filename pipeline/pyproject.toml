@@ -11,6 +11,7 @@ dependencies = [
     "pyarrow>=23.0.0",
     "sqlalchemy>=2.0.46",
     "tqdm>=4.67.3",
+    "pyarrow"
 ]
 
 [dependency-groups]

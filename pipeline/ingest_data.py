@@ -3,7 +3,10 @@
 
 import pandas as pd
 from sqlalchemy import create_engine
+from sqlalchemy.exc import  SQLAlchemyError
 from tqdm.auto import tqdm
+import pyarrow.parquet as pq
+import sys
 import click
 
 
@@ -46,36 +49,49 @@ def load_taxi_data(
     year: int = 2021,
     month: int = 1,
     target_table: str = 'yellow_taxi_data',
-    chunksize: int = 100000,
+    chunksize: int = 10000,
 ):
 
-    prefix = 'https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/'
-    url = f'{prefix}/yellow_tripdata_{year}-{month:02d}.csv.gz'
+    #prefix = 'https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/'
+    #url = f'{prefix}/yellow_tripdata_{year}-{month:02d}.csv.gz'
+    url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_{year}-{month:02d}.parquet"
 
     engine = create_engine(f'postgresql+psycopg://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}')
 
-    df_iter = pd.read_csv(
-        url,
-        dtype=dtype,
-        parse_dates=parse_dates,
-        iterator=True,
-        chunksize=chunksize
-    )
+    df = pd.read_parquet(url)
 
-    first=True
+    try:
+        first=True
+        for start in tqdm(range(0, len(df), chunksize)):
+            df_chunk = df.iloc[start:start + chunksize]
+                
+            if first:
+                df_chunk.head(n=0).to_sql(
+                    name=target_table ,
+                    con=engine, 
+                    if_exists='replace',
+                    index=False)
+                    
+                first=False
+                
+            df_chunk.to_sql(
+                name=target_table,
+                con=engine,
+                if_exists='append',
+                index=False
+            )
+    except KeyboardInterrupt:
+        print("\nProcess interrupted by user. Exiting... (Ctrl+C)")
+        sys.exit(0)
+    except SQLAlchemyError as e:
+        print(f"\nDatabase Error Occurred : {e}")
+    except Exception as e:
+        print(f"\nUnexpected error occurred: {e}")
+        sys.exit(1)
+    finally:
+        engine.dispose()
+        print("Database connection closed.")
 
-    for df_chunk in tqdm(df_iter):
-        if first:
-            df_chunk.head(n=0).to_sql(
-                name=target_table, 
-                con=engine, 
-                if_exists='replace')
-            first=False
-        
-        df_chunk.to_sql(
-            name=target_table,
-            con=engine,
-            if_exists='append')
 
 
 if __name__ == '__main__':
