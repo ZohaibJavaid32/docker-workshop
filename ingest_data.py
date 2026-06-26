@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from tqdm.auto import tqdm
+from tenacity import retry , stop_after_attempt , wait_exponential , retry_if_exception_type, before_sleep_log
+
 
 # Load .env file into environment variables before anything else
 load_dotenv()
@@ -39,6 +41,18 @@ def setup_logging() -> logging.Logger:
 
 logger = setup_logging()
 
+# ── Parquet File Downloader ────────────────────────────────────────────────────────
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1,min=2,max=10),
+    retry=retry_if_exception_type(Exception),
+    before_sleep=before_sleep_log(logger, logging.WARNING)
+)
+def download_parquet(url):
+    """Download a Parquet File from a URL with automatic retry on Failure."""
+    logger.info(f"Attempting to download: {url}")
+    return pd.read_parquet(url)
 
 # ── Schema definition ────────────────────────────────────────────────────────
 
@@ -91,7 +105,7 @@ def load_taxi_data(
 
     try:
         logger.info("Downloading Parquet File....")
-        df = pd.read_parquet(url)
+        df = download_parquet(url)
         total_rows = len(df)
         logger.info(f"File Loaded. Total rows: {total_rows:,}")
 
