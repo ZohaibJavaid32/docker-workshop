@@ -8,10 +8,10 @@ dependencies = [
     "click>=8.1.7",
     "pandas>=3.0.0",
     "psycopg[binary,pool]>=3.3.2",
-    "pyarrow>=23.0.0",
     "sqlalchemy>=2.0.46",
     "tqdm>=4.67.3",
-    "pyarrow"
+    "python-dotenv>=1.2.2",
+    "pyarrow>=23.0.0",
 ]
 
 [dependency-groups]
