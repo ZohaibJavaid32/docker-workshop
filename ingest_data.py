@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
-
+import logging
+from pathlib import Path
 import os
 import sys
-
 import click
 import pandas as pd
 from dotenv import load_dotenv
@@ -13,6 +13,32 @@ from tqdm.auto import tqdm
 
 # Load .env file into environment variables before anything else
 load_dotenv()
+
+# ── Logging Setup ────────────────────────────────────────────────────────
+
+def setup_logging() -> logging.Logger:
+    """Configure  logging to write log message to both terminal and log file."""
+
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+
+    log_format = "[%(asctime)s] %(levelname)-8s %(message)s"
+    date_format = "%Y-%m-%d %H:%M:%S"
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format=log_format,
+        datefmt=date_format,
+        handlers = [
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(log_dir / "ingest.log"),
+        ],
+    )
+
+    return logging.getLogger(__name__)
+
+logger = setup_logging()
+
 
 # ── Schema definition ────────────────────────────────────────────────────────
 
@@ -55,17 +81,23 @@ def load_taxi_data(
         f"yellow_tripdata_{year}-{month:02d}.parquet"
     )
 
-    print(f"Downloading: {url}")
+    logger.info(f"Starting ingestion for {year}-{month:02d}")
+    logger.info(f"Source URL: {url}")
+    logger.info(f"Target Table: {target_table}")
 
     engine = create_engine(
         f"postgresql+psycopg://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
     )
 
     try:
+        logger.info("Downloading Parquet File....")
         df = pd.read_parquet(url)
-        print(f"File loaded. Total rows: {len(df):,}")
+        total_rows = len(df)
+        logger.info(f"File Loaded. Total rows: {total_rows:,}")
+
 
         total_chunks = (len(df) // chunksize) + 1
+        loaded_rows = 0
         first = True
 
         for start in tqdm(range(0, len(df), chunksize), total=total_chunks, desc="Loading chunks"):
@@ -88,23 +120,25 @@ def load_taxi_data(
                 method="multi",
             )
 
-        print(f"\nDone. All data loaded into table: {target_table}")
+            loaded_rows += len(df_chunk)
+
+        logger.info(f"Done. Loaded {loaded_rows:,} rows into table {target_table}.")
 
     except KeyboardInterrupt:
-        print("\nInterrupted by user. Cleaning up...")
+        logger.warning(f"Interrupted by User.   ")
         sys.exit(0)
 
     except SQLAlchemyError as e:
-        print(f"\nDatabase error: {e}")
+        logger.error(f"Database Error Occurred: {e}")
         sys.exit(1)
 
     except Exception as e:
-        print(f"\nUnexpected error: {e}")
+        logger.exception(f"Unexpected Error: {e}")
         sys.exit(1)
 
     finally:
         engine.dispose()
-        print("Database connection closed.")
+        logger.info("Database connection closed")
 
 
 # ── CLI definition ────────────────────────────────────────────────────────────
