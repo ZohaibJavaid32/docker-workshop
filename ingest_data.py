@@ -90,7 +90,7 @@ def load_taxi_data(
         sys.exit(1)
     finally:
         engine.dispose()
-        print("\nDatabase connection closed.")
+        print("Database connection closed.")
 
 
 
