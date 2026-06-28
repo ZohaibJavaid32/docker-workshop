@@ -25,4 +25,3 @@ def setup_logging() -> logging.Logger:
     )
 
     return logging.getLogger(__name__)
-
