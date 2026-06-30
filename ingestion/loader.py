@@ -57,19 +57,66 @@ def load_taxi_data(
     logger.info(f"Source URL: {url}")
     logger.info(f"Target Table: {target_table}")
 
-    engine = create_engine(
-        f"postgres+psycopg://{pg_user}:{pg_pass}@{pg_host}"{pg_port}/{pg_db}"
-    )
 
+    engine = None
     try:
-        logging.info(f"Downloading parquet file...")
+
+        engine = create_engine(
+        f"postgresql+psycopg://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
+        )
+
+
+        logger.info(f"Downloading parquet file...")
         df = download_parquet(url)
         total_rows = len(df)
-        logging.info(f"File loaded. Total rows: {total_rows:,}")
+        logger.info(f"File loaded. Total rows: {total_rows:,}")
 
-        logging.info("Performing Validations...")
+        logger.info("Performing Validations...")
 
         validate_dataframe(df , year , month)
         
+        total_chunks = len(df) // chunksize + 1
+        loaded_rows = 0
+        first = True
+
+        for start in tqdm(range(0, len(df) , chunksize) ,total=total_chunks , desc="Loading Chunks"):
+            df_chunk = df.iloc[start:start + chunksize]
+
+            if first:
+                df_chunk.head(n=0).to_sql(
+                    name=target_table,
+                    con=engine,
+                    if_exists="replace",
+                    index=False
+                )
+
+                first=False
+
+            df_chunk.to_sql(
+                name=target_table,
+                con=engine,
+                if_exists="append",
+                index=False,
+                method="multi"
+            )
+            loaded_rows += len(df_chunk)
+        
+        logger.info(f"Done. Loaded {loaded_rows:,} rows into table {target_table}")
+    
+    except KeyboardInterrupt:
+        logger.warning("Interrupted by user.")
+        sys.exit(0)
+    except SQLAlchemyError as e:
+        logger.error(f"Database error occurred: {e}")
+        sys.exit(1)
+
+    except Exception as e:
+        logger.exception(f"Unexpected Error: {e}")
+        sys.exit(1)
+    
+    finally:
+        if engine is not None:
+            engine.dispose()
+            logger.info("Database Connection Closed.")
 
         

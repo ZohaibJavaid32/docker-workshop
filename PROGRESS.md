@@ -5,8 +5,8 @@
 - [x] `logging` module
 - [x] `tenacity` retries
 - [x] Refactor into `ingestion/` package
-- [ ] `loader.py` — complete the loader module
-- [ ] Data validation — wire validator into loader
+- [x] `loader.py` — complete the loader module
+- [x] Data validation — wire validator into loader
 - [ ] `ingest_data.py` — update CLI to use new package
 - [ ] End-to-end test — run full pipeline locally
 - [ ] `README.md` — architecture, setup, usage

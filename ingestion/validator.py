@@ -15,7 +15,7 @@ REQUIRED_COLUMNS = [
     "DOLocationID",
 ]
 
-def validate_dataframe(df: pd.DataFrame , year:int , month: int):
+def validate_dataframe(df: pd.DataFrame , year:int , month: int) -> None:
     """Validate DataFrame before loading into PostgresSQL."""
 
     logger.info("Running data validation...")
@@ -37,7 +37,7 @@ def validate_dataframe(df: pd.DataFrame , year:int , month: int):
                 f"Validation failed: col {col} is {null_pct:.1%} null — exceeds 50% threshold."
             )
 
-   logger.info("Null check passed: critical columns within acceptable threshold.")
+    logger.info("Null check passed: critical columns within acceptable threshold.")
 
 
     in_range = (
