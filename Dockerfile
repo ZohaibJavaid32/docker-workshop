@@ -17,7 +17,7 @@ RUN uv sync --locked
 
 # Copy application code
 COPY ingest_data.py .
-COPY load_zones.py . 
+COPY ingestion/ ./ingestion/
 
 # Set entry point
 ENTRYPOINT ["uv", "run", "python", "ingest_data.py"]
