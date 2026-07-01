@@ -97,7 +97,6 @@ def load_taxi_data(
                 con=engine,
                 if_exists="append",
                 index=False,
-                method="multi"
             )
             loaded_rows += len(df_chunk)
         
