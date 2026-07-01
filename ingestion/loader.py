@@ -2,7 +2,7 @@ import io
 import logging
 import sys
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine , text
 from sqlalchemy.exc import SQLAlchemyError
 from tqdm.auto import tqdm
 from ingestion.logging_config import setup_logging
@@ -34,6 +34,7 @@ DTYPE = {
     "congestion_surcharge": "float64",
 }
 
+
 def copy_chunk_to_db(df_chunk: pd.DataFrame , table :str , engine) -> None:
 
     # write chunk to an in memory CSV buffer (no disk writes) 
@@ -54,6 +55,17 @@ def copy_chunk_to_db(df_chunk: pd.DataFrame , table :str , engine) -> None:
                 copy.write(buffer.read())
 
         conn.connection.commit() 
+
+def create_indexes(engine , table:str) -> None:
+
+    indexes = [
+        f"CREATE INDEX IF NOT EXISTS idx_{table}_pickup_datetime ON {table} (tpep_pickup_datetime)",
+        f"CREATE INDEX IF NOT EXISTS idx_{table}_pu_location ON {table} (PULocationID)",
+        f"CREATE INDEX IF NOT EXISTS idx_{table}_do_location ON {table} (DOLocationID)", 
+        f"CREATE INDEX IF NOT EXISTS idx_{table}_payment_type ON {table} (payment_type)"
+    ]
+
+    
 
 def load_taxi_data(
     pg_user: str,
