@@ -12,8 +12,8 @@
 - [ ] `README.md` — architecture, setup, usage
 
 ## Phase 2 — Performance & Scalability
-- [ ] PostgreSQL COPY command (replace to_sql)
-- [ ] Database indexes on datetime and location columns
+- [x] PostgreSQL COPY command (replace to_sql)
+- [x] Database indexes on datetime and location columns
 - [ ] Incremental loading (skip already-loaded months)
 - [ ] Partitioned tables by year/month
 

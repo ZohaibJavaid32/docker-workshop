@@ -56,15 +56,23 @@ def copy_chunk_to_db(df_chunk: pd.DataFrame , table :str , engine) -> None:
 
         conn.connection.commit() 
 
-def create_indexes(engine , table:str) -> None:
+def create_indexes(engine, table: str) -> None:
 
     indexes = [
-        f"CREATE INDEX IF NOT EXISTS idx_{table}_pickup_datetime ON {table} (tpep_pickup_datetime)",
-        f"CREATE INDEX IF NOT EXISTS idx_{table}_pu_location ON {table} (PULocationID)",
-        f"CREATE INDEX IF NOT EXISTS idx_{table}_do_location ON {table} (DOLocationID)", 
-        f"CREATE INDEX IF NOT EXISTS idx_{table}_payment_type ON {table} (payment_type)"
+        f'CREATE INDEX IF NOT EXISTS idx_{table}_pickup_datetime ON {table} ("tpep_pickup_datetime")',
+        f'CREATE INDEX IF NOT EXISTS idx_{table}_pu_location ON {table} ("PULocationID")',
+        f'CREATE INDEX IF NOT EXISTS idx_{table}_do_location ON {table} ("DOLocationID")',
+        f'CREATE INDEX IF NOT EXISTS idx_{table}_payment_type ON {table} ("payment_type")'
     ]
 
+    logger.info(f"Creating indexes on {table}...")
+
+    with engine.connect() as conn:
+        for sql in indexes:
+            conn.execute(text(sql))
+        conn.commit()
+
+    logger.info("Indexes created.")
     
 
 def load_taxi_data(
@@ -126,7 +134,7 @@ def load_taxi_data(
 
             copy_chunk_to_db(df_chunk, target_table, engine)
             loaded_rows += len(df_chunk)
-        
+        create_indexes(engine , target_table)
         logger.info(f"Done. Loaded {loaded_rows:,} rows into table {target_table}")
     
     except KeyboardInterrupt:
