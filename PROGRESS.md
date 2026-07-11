@@ -14,7 +14,7 @@
 ## Phase 2 — Performance & Scalability
 - [x] PostgreSQL COPY command (replace to_sql)
 - [x] Database indexes on datetime and location columns
-- [ ] Incremental loading (skip already-loaded months)
+- [x] Incremental loading (skip already-loaded months)
 - [ ] Partitioned tables by year/month
 
 ## Phase 3 — Orchestration
