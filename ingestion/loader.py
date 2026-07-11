@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 from ingestion.logging_config import setup_logging
 from ingestion.downloader import download_parquet
 from ingestion.validator import validate_dataframe
-
+from ingestion.tracker import create_tracking_table, is_already_loaded, log_ingestion
 
 # setup logging
 
@@ -105,7 +105,12 @@ def load_taxi_data(
         f"postgresql+psycopg://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
         )
 
+        create_tracking_table(engine)
 
+        if is_already_loaded(engine , target_table ,year , month):
+            logger.warning(f"{target_table} for {year}-{month:02d} already loaded. Skipping..." )
+            return
+        
         logger.info(f"Downloading parquet file...")
         df = download_parquet(url)
         total_rows = len(df)
@@ -136,6 +141,9 @@ def load_taxi_data(
             loaded_rows += len(df_chunk)
         create_indexes(engine , target_table)
         logger.info(f"Done. Loaded {loaded_rows:,} rows into table {target_table}")
+
+        log_ingestion(engine , target_table , year , month , loaded_rows , "success")
+
     
     except KeyboardInterrupt:
         logger.warning("Interrupted by user.")

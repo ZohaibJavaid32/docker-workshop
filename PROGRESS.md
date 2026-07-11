@@ -7,9 +7,9 @@
 - [x] Refactor into `ingestion/` package
 - [x] `loader.py` — complete the loader module
 - [x] Data validation — wire validator into loader
-- [ ] `ingest_data.py` — update CLI to use new package
-- [ ] End-to-end test — run full pipeline locally
-- [ ] `README.md` — architecture, setup, usage
+- [x] `ingest_data.py` — update CLI to use new package
+- [x] End-to-end test — run full pipeline locally
+- [x] `README.md` — architecture, setup, usage
 
 ## Phase 2 — Performance & Scalability
 - [x] PostgreSQL COPY command (replace to_sql)
