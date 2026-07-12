@@ -1,0 +1,6 @@
+pandas
+pyarrow
+psycopg2-binary
+tqdm
+tenacity
+python-dotenv

@@ -20,7 +20,6 @@ def create_tracking_table(engine) -> None:
     logger.info("Creating table ingestion_log.....")
     with engine.connect() as conn:
         conn.execute(text(sql))
-        conn.commit()
     
     logger.info("ingestion_log table created.")
 
@@ -54,4 +53,4 @@ def log_ingestion(engine , table :str , year : int , month : int , rows_loaded: 
     logger.info(f"Inserting metrics for '{table}'.")
     with engine.connect() as conn:
         conn.execute(text(sql))
-        conn.commit()
+        

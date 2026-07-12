@@ -17,6 +17,7 @@ x-airflow-common: &airflow-common
     - ./logs/airflow:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
     - ./ingestion:/opt/airflow/ingestion
+    - ./requirements.txt:/opt/airflow/requirements.txt
   depends_on:
     airflow-postgres:
       condition: service_healthy
@@ -25,6 +26,7 @@ x-airflow-common: &airflow-common
 
 services:
   airflow-postgres:
+    container_name: airflow-postgres
     image: postgres:15
     environment:
       POSTGRES_USER: airflow
@@ -45,6 +47,7 @@ services:
     command:
       - -c
       - |
+        pip install -r /opt/airflow/requirements.txt &&
         airflow db migrate &&
         airflow users create \
           --username admin \
@@ -58,7 +61,8 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-    command: webserver
+    container_name: airflow-webserver
+    command: bash -c "pip install -r /opt/airflow/requirements.txt && airflow webserver"
     ports:
       - "8080:8080"
     healthcheck:
@@ -69,7 +73,8 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
-    command: scheduler
+    container_name: airflow-scheduler
+    command: bash -c "pip install -r /opt/airflow/requirements.txt && airflow scheduler"
 
 volumes:
   airflow_postgres_data:

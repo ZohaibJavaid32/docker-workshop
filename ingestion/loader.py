@@ -51,8 +51,7 @@ def copy_chunk_to_db(df_chunk: pd.DataFrame , table :str , engine) -> None:
         with conn.connection.cursor() as cursor:
 
             # stream CSV buffer directly into PostgreSQL
-            with cursor.copy(f"COPY {table} FROM STDIN WITH (FORMAT CSV)") as copy:
-                copy.write(buffer.read())
+            cursor.copy_expert(f"COPY {table} FROM STDIN WITH (FORMAT CSV)",buffer)
 
         conn.connection.commit() 
 
@@ -70,7 +69,7 @@ def create_indexes(engine, table: str) -> None:
     with engine.connect() as conn:
         for sql in indexes:
             conn.execute(text(sql))
-        conn.commit()
+        
 
     logger.info("Indexes created.")
     
@@ -102,7 +101,7 @@ def load_taxi_data(
     try:
 
         engine = create_engine(
-        f"postgresql+psycopg://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
+        f"postgresql+psycopg2://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
         )
 
         create_tracking_table(engine)
