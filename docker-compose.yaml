@@ -10,6 +10,9 @@ services:
       - "ny_taxi_postgres_data:/var/lib/postgresql"
     ports:
       - "5432:5432"
+    networks:
+      - pipeline_net
+
   pgadmin:
     image: dpage/pgadmin4
     environment:
@@ -19,6 +22,13 @@ services:
       - "pgadmin_data:/var/lib/pgadmin"
     ports:
       - "8085:80"
+    networks:
+      - pipeline_net
+
 volumes:
   ny_taxi_postgres_data:
   pgadmin_data:
+
+networks:
+  pipeline_net:
+    name: docker-workshop_default
