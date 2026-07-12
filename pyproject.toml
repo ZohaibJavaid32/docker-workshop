@@ -13,6 +13,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "pyarrow>=23.0.0",
     "tenacity>=9.1.4",
+    "dbt-postgres>=1.10.2",
 ]
 
 [dependency-groups]
