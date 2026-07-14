@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: stg_yellow_taxi
+    description: "Cleaned and renamed NYC Yellow Taxi trips"
+    columns:
+      - name: vendor_id
+        description: "Taxi vendor ID"
+        tests:
+          - not_null
+      - name: pickup_datetime
+        description: "Trip pickup datetime"
+        tests:
+          - not_null
+      - name: fare_amount
+        description: "Base fare amount"
+        tests:
+          - not_null
+      - name: trip_distance
+        description: "Trip distance in miles"
+        tests:
+          - not_null
+      - name: pickup_location_id
+        description: "Pickup location ID"
+        tests:
+          - not_null
+      - name: dropoff_location_id
+        description: "Dropoff location ID"
+        tests:
+          - not_null
