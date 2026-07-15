@@ -1,5 +1,5 @@
 WITH source AS (
-    SELECT * FROM yellow_taxi_2025_01
+    SELECT * FROM yellow_taxi
 ),
 renamed AS (
     SELECT 

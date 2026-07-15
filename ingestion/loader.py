@@ -9,8 +9,7 @@ from ingestion.logging_config import setup_logging
 from ingestion.downloader import download_parquet
 from ingestion.validator import validate_dataframe
 from ingestion.tracker import create_tracking_table, is_already_loaded, log_ingestion
-
-# setup logging
+from ingestion.unified_loader import create_unified_table
 
 logger = setup_logging()
 
@@ -55,7 +54,7 @@ def copy_chunk_to_db(df_chunk: pd.DataFrame , table :str , engine) -> None:
 
         conn.connection.commit() 
 
-def create_indexes(engine, table: str) -> None:
+def create_indexes(engine, table : str) -> None:
 
     indexes = [
         f'CREATE INDEX IF NOT EXISTS idx_{table}_pickup_datetime ON {table} ("tpep_pickup_datetime")',
@@ -106,6 +105,8 @@ def load_taxi_data(
 
         create_tracking_table(engine)
 
+        create_unified_table(engine)
+
         if is_already_loaded(engine , target_table ,year , month):
             logger.warning(f"{target_table} for {year}-{month:02d} already loaded. Skipping..." )
             return
@@ -121,24 +122,17 @@ def load_taxi_data(
         
         total_chunks = len(df) // chunksize + 1
         loaded_rows = 0
-        first = True
+        #first = True
 
         for start in tqdm(range(0, len(df) , chunksize) ,total=total_chunks , desc="Loading Chunks"):
-            df_chunk = df.iloc[start:start + chunksize]
-
-            if first:
-                df_chunk.head(n=0).to_sql(
-                    name=target_table,
-                    con=engine,
-                    if_exists="replace",
-                    index=False
-                )
-
-                first=False
-
-            copy_chunk_to_db(df_chunk, target_table, engine)
+            df_chunk = df.iloc[start:start + chunksize].copy()
+            df_chunk["data_year"] = year
+            df_chunk["data_month"] = month
+            
+            
+            copy_chunk_to_db(df_chunk, "yellow_taxi", engine)
             loaded_rows += len(df_chunk)
-        create_indexes(engine , target_table)
+        create_indexes(engine , "yellow_taxi")
         logger.info(f"Done. Loaded {loaded_rows:,} rows into table {target_table}")
 
         log_ingestion(engine , target_table , year , month , loaded_rows , "success")
