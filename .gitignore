@@ -36,3 +36,4 @@ logs/*.log
 __pycache__/
 nyc-pipeline/
 logs/airflow/
+pg_hba.conf

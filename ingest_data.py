@@ -25,6 +25,7 @@ load_dotenv()
 @click.option("--chunksize",    default=lambda: int(os.environ.get("CHUNKSIZE", "100000")),      show_default="from env", help="Chunk size",       type=int)
 def main(pg_user, pg_pass, pg_host, pg_port, pg_db, year, month, target_table, chunksize):
     """NYC Taxi data ingestion pipeline."""
+
     load_taxi_data(
         pg_user=pg_user,
         pg_pass=pg_pass,

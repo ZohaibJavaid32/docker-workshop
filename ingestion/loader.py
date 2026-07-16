@@ -71,7 +71,8 @@ def create_indexes(engine, table : str) -> None:
         
 
     logger.info("Indexes created.")
-    
+
+  
 
 def load_taxi_data(
     pg_user: str,

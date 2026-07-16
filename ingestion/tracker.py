@@ -18,7 +18,7 @@ def create_tracking_table(engine) -> None:
     """
 
     logger.info("Creating table ingestion_log.....")
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         conn.execute(text(sql))
     
     logger.info("ingestion_log table created.")
@@ -27,30 +27,47 @@ def is_already_loaded(engine , table : str, year: int, month: int) -> bool:
 
     """Check if data is loaded for this table."""
 
-    sql = f"""
-            SELECT COUNT(*) FROM ingestion_log
-            WHERE table_name = '{table}'
-            AND year = {year}
-            AND month = {month}
-            AND LOWER(status) = 'success'
-    """
+    sql = text("""
+        SELECT COUNT(*)
+        FROM ingestion_log
+        WHERE table_name = :table
+        AND year = :year
+        AND month = :month
+        AND LOWER(status) = 'success'
+    """)
 
     logger.info(f"Checking success status for '{table}'.")
     with engine.connect() as conn:
-        result = conn.execute(text(sql))
-        count = result.scalar() # return single value (count)
+        count = conn.execute(
+            sql,
+            {
+                "table": table,
+                "year": year,
+                "month": month,
+            },
+        ).scalar()  
 
     return count > 0
 
 def log_ingestion(engine , table :str , year : int , month : int , rows_loaded: int , status : str) -> None:
     """Log metrics for loaded table."""
 
-    sql = f"""
-        INSERT INTO ingestion_log(table_name , year , month , rows_loaded , status)
-        VALUES ('{table}' , {year} , {month} , {rows_loaded} , '{status.lower()}')
-    """
+    sql = text("""
+        INSERT INTO ingestion_log
+        (table_name, year, month, rows_loaded, status)
+        VALUES 
+        (:table , :year , :month , :rows_loaded , :status)
+    """)
 
     logger.info(f"Inserting metrics for '{table}'.")
-    with engine.connect() as conn:
-        conn.execute(text(sql))
+    with engine.begin() as conn:
+        conn.execute(
+            sql,
+            {"table":table,
+             "year":year,
+             "month":month,
+             "rows_loaded": rows_loaded,
+             "status": status.lower()
+            },
+        )
         
