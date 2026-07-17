@@ -34,7 +34,7 @@ DTYPE = {
 }
 
 
-def copy_chunk_to_db(df_chunk: pd.DataFrame , table :str , engine) -> None:
+def copy_chunk_to_db(df_chunk: pd.DataFrame , table :str , conn) -> None:
 
     # write chunk to an in memory CSV buffer (no disk writes) 
     buffer = io.StringIO()
@@ -43,16 +43,13 @@ def copy_chunk_to_db(df_chunk: pd.DataFrame , table :str , engine) -> None:
     # reset buffer to start so that PostgreSQL reads from beginning
     buffer.seek(0)
 
-    # get raw conn from SQLAlchemy engine pool
-    with engine.connect() as conn:
 
         # get raw psycopg cursor from the connection
-        with conn.connection.cursor() as cursor:
+    with conn.connection.cursor() as cursor:
 
             # stream CSV buffer directly into PostgreSQL
-            cursor.copy_expert(f"COPY {table} FROM STDIN WITH (FORMAT CSV)",buffer)
+        cursor.copy_expert(f"COPY {table} FROM STDIN WITH (FORMAT CSV)",buffer)
 
-        conn.connection.commit() 
 
 def create_indexes(engine, table : str) -> None:
 
@@ -65,11 +62,11 @@ def create_indexes(engine, table : str) -> None:
 
     logger.info(f"Creating indexes on {table}...")
 
-    with engine.connect() as conn:
+    # begin() auto-commits on clean exit and auto-rolls-back on exception
+    with engine.begin() as conn:
         for sql in indexes:
             conn.execute(text(sql))
-        
-
+    
     logger.info("Indexes created.")
 
   
@@ -82,7 +79,6 @@ def load_taxi_data(
     pg_db: str,
     year: int,
     month: int,
-    target_table: str,
     chunksize: int,
 ) -> None:
     """Download NYC taxi Parquet file and load it into PostgreSQL."""
@@ -94,22 +90,21 @@ def load_taxi_data(
 
     logger.info(f"Starting Ingestion for {year}-{month:02d}")
     logger.info(f"Source URL: {url}")
-    logger.info(f"Target Table: {target_table}")
 
 
     engine = None
     try:
 
         engine = create_engine(
-        f"postgresql+psycopg2://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
+        f"postgresql+psycopg2://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}",
+        pool_pre_ping=True
         )
 
         create_tracking_table(engine)
-
         create_unified_table(engine)
 
-        if is_already_loaded(engine , target_table ,year , month):
-            logger.warning(f"{target_table} for {year}-{month:02d} already loaded. Skipping..." )
+        if is_already_loaded(engine , "yellow_taxi" ,year , month):
+            logger.warning(f"Data for {year}-{month:02d} already loaded. Skipping..." )
             return
         
         logger.info(f"Downloading parquet file...")
@@ -125,30 +120,37 @@ def load_taxi_data(
         loaded_rows = 0
         #first = True
 
-        for start in tqdm(range(0, len(df) , chunksize) ,total=total_chunks , desc="Loading Chunks"):
-            df_chunk = df.iloc[start:start + chunksize].copy()
-            df_chunk["data_year"] = year
-            df_chunk["data_month"] = month
-            
-            
-            copy_chunk_to_db(df_chunk, "yellow_taxi", engine)
-            loaded_rows += len(df_chunk)
-        create_indexes(engine , "yellow_taxi")
-        logger.info(f"Done. Loaded {loaded_rows:,} rows into table {target_table}")
+        try:
+            with engine.begin() as conn:
+                for start in tqdm(range(0, len(df) , chunksize) ,total=total_chunks , desc="Loading Chunks"):
+                    df_chunk = df.iloc[start:start + chunksize].copy()
+                    df_chunk["data_year"] = year
+                    df_chunk["data_month"] = month
+                    
+                    
+                    copy_chunk_to_db(df_chunk, "yellow_taxi", conn=conn)
+                    loaded_rows += len(df_chunk)
+        except SQLAlchemyError as e:
+            logger.error(f"Load failed for {year}-{month:02d}. Rolled backed cleanly: {e}")
+            log_ingestion(engine , "yellow_taxi" , year , month , loaded_rows , "failed")
+            raise
 
-        log_ingestion(engine , target_table , year , month , loaded_rows , "success")
+        create_indexes(engine , "yellow_taxi")
+        logger.info(f"Done. Loaded {loaded_rows:,} rows.")
+
+        log_ingestion(engine , "yellow_taxi" , year , month , loaded_rows , "success")
 
     
     except KeyboardInterrupt:
         logger.warning("Interrupted by user.")
-        sys.exit(0)
+        raise
     except SQLAlchemyError as e:
         logger.error(f"Database error occurred: {e}")
-        sys.exit(1)
+        raise
 
     except Exception as e:
         logger.exception(f"Unexpected Error: {e}")
-        sys.exit(1)
+        raise 
     
     finally:
         if engine is not None:

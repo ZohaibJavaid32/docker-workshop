@@ -15,19 +15,19 @@
 - [x] PostgreSQL COPY command (replace to_sql)
 - [x] Database indexes on datetime and location columns
 - [x] Incremental loading (skip already-loaded months)
-- [ ] Partitioned tables by year/month
+- [x] Partitioned tables by year/month
 
 ## Phase 3 — Orchestration
-- [ ] Apache Airflow via Docker Compose
-- [ ] Ingestion DAG (download → validate → load → notify)
-- [ ] Scheduled monthly runs
-- [ ] Task-level retries and alerting
+- [x] Apache Airflow via Docker Compose
+- [x] Ingestion DAG (download → validate → load → notify)
+- [x] Scheduled monthly runs
+- [x] Task-level retries and alerting
 
 ## Phase 4 — Transformation Layer
-- [ ] dbt project setup
-- [ ] Staging models (stg_yellow_taxi)
-- [ ] Intermediate + mart models
-- [ ] dbt tests and documentation
+- [x] dbt project setup
+- [x] Staging models (stg_yellow_taxi)
+- [x] Intermediate + mart models
+- [x] dbt tests and documentation
 
 ## Phase 5 — Cloud & Production
 - [ ] AWS S3 raw storage
