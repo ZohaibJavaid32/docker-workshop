@@ -5,6 +5,14 @@ logger = setup_logging()
 
 def create_tracking_table(engine) -> None:
     """Create ingestion_log table if its not created."""
+
+    # Check if table already exists.
+    check_sql = """
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_name = 'ingestion_log'
+            );
+        """
     sql = """
         CREATE TABLE IF NOT EXISTS ingestion_log (
             id SERIAL PRIMARY KEY,
@@ -17,11 +25,18 @@ def create_tracking_table(engine) -> None:
         )
     """
 
-    logger.info("Creating table ingestion_log.....")
-    with engine.begin() as conn:
-        conn.execute(text(sql))
     
-    logger.info("ingestion_log table created.")
+    with engine.begin() as conn:
+        result = conn.execute(text(check_sql))
+        exists = result.scalar()
+
+        if not exists:
+            logger.info("Creating table ingestion_log.....")
+            conn.execute(text(sql))
+            logger.info("Ingestion table created.")
+        else:
+            logger.debug("Ingestion table already exists.")
+    
 
 def is_already_loaded(engine , table : str, year: int, month: int) -> bool:
 
