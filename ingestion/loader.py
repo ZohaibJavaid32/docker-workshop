@@ -10,7 +10,7 @@ from ingestion.downloader import download_parquet
 from ingestion.validator import validate_dataframe
 from ingestion.tracker import create_tracking_table, is_already_loaded, log_ingestion
 from ingestion.unified_loader import create_unified_table
-
+from ingestion.partitions import create_month_partition
 logger = setup_logging()
 
 
