@@ -9,24 +9,36 @@ def create_month_partition(engine , year : int, month: int) -> None:
     """Create a monthly partition for yellow_taxi if it doesn't exist."""
 
     partition_name = f"yellow_taxi_y{year}m{month:02d}"
-
-    # Calculate next month for upper bound
-    if month == 12:
-        next_year = year + 1
-        next_month = 1
-    else:
-        next_year = year
-        next_month = month + 1
     
-    sql = f"""
-        CREATE TABLE IF NOT EXISTS {partition_name}
-        PARTITION OF yellow_taxi
-        FOR VALUES ({year} , {month}) TO ({next_year} , {next_month})
+    check_sql = f"""
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE tablename = '{partition_name}'
+        );
     """
 
-    logger.info(f"Ensuring partition {partition_name} exists...")
-    with engine.connect() as conn:
-        conn.execute(text(sql))
-        conn.commit()
     
-    logger.info(f"Partition {partition_name} ready.")
+    with engine.connect() as conn:
+
+        result = conn.execute(text(check_sql))
+        exists = result.scalar()
+
+        if not exists:
+            if month == 12:
+                next_year = year + 1
+                next_month = 1
+            else:
+                next_year = year
+                next_month = month + 1
+            
+            sql = f"""
+                CREATE TABLE IF NOT EXISTS {partition_name}
+                PARTITION OF yellow_taxi
+                FOR VALUES ({year} , {month}) TO ({next_year} , {next_month})
+            """
+            logger.info(f"Creating partition {partition_name}...")
+            conn.execute(text(sql))
+            conn.commit()
+            logger.info(f"Partition {partition_name} ready.")
+        else:
+            logger.debug(f"Partition {partition_name} already exists.")

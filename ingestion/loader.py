@@ -54,20 +54,46 @@ def copy_chunk_to_db(df_chunk: pd.DataFrame , table :str , conn) -> None:
 def create_indexes(engine, table : str) -> None:
 
     indexes = [
-        f'CREATE INDEX IF NOT EXISTS idx_{table}_pickup_datetime ON {table} ("tpep_pickup_datetime")',
-        f'CREATE INDEX IF NOT EXISTS idx_{table}_pu_location ON {table} ("PULocationID")',
-        f'CREATE INDEX IF NOT EXISTS idx_{table}_do_location ON {table} ("DOLocationID")',
-        f'CREATE INDEX IF NOT EXISTS idx_{table}_payment_type ON {table} ("payment_type")'
+        {
+            "name": f"idx_{table}_pickup_datetime",
+            "sql": f"CREATE INDEX IF NOT EXISTS idx_{table}_pickup_datetime ON {table} (tpep_pickup_datetime)",
+        },
+        {
+            "name": f"idx_{table}_pu_location",
+            "sql": f'CREATE INDEX IF NOT EXISTS idx_{table}_pu_location ON {table} ("PULocationID")',
+        },
+        {
+            "name": f"idx_{table}_do_location",
+            "sql": f'CREATE INDEX IF NOT EXISTS idx_{table}_do_location ON {table} ("DOLocationID")',
+        },
+        {
+            "name": f"idx_{table}_payment_type",
+            "sql": f"CREATE INDEX IF NOT EXISTS idx_{table}_payment_type ON {table} (payment_type)",
+        },
     ]
 
-    logger.info(f"Creating indexes on {table}...")
 
     # begin() auto-commits on clean exit and auto-rolls-back on exception
     with engine.begin() as conn:
-        for sql in indexes:
-            conn.execute(text(sql))
-    
-    logger.info("Indexes created.")
+
+        for index in indexes:
+            check_sql = f"""
+                SELECT EXISTS (
+                    SELECT 1 FROM pg_indexes 
+                    WHERE tablename = {table}
+                    AND indexname = '{index["name"]}'
+                );
+            """
+            result = conn.execute(text(check_sql))
+            exists = result.scalar()
+
+            if not exists:
+                logger.info(f"Creating index {index['name']}.")
+                conn.execute(text(index["sql"]))
+                logger.info(f"Index {index['name']} created.")
+            else:
+                logger.debug(f"Index {index['name']} already exists.")
+            
 
   
 

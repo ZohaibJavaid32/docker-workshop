@@ -9,6 +9,13 @@ logger = setup_logging()
 
 def create_unified_table(engine) -> None:
     """ Create unified yellow_taxi table."""
+
+    check_sql = """
+        SELECT EXISTS(
+            SELECT 1 FROM information_schema.tables
+            WHERE table_name = 'yellow_taxi'
+        );
+    """
     sql = """
         CREATE TABLE IF NOT EXISTS yellow_taxi (
             "VendorID"              BIGINT,
@@ -40,10 +47,17 @@ def create_unified_table(engine) -> None:
             CREATE INDEX IF NOT EXISTS idx_yello_taxi_year_month
             ON yellow_taxi(data_year , data_month)
         """
+    
 
-    logger.info("Creating unified yellow_taxi table")
     with engine.connect() as conn:
-        conn.execute(text(sql))
-        conn.execute(text(create_index))
-        conn.commit()
-    logger.info("Unified yellow_taxi table ready.")
+        result = conn.execute(text(check_sql))
+        exists = result.scalar()
+        
+        if not exists:
+            logger.info("Creating unified yellow_taxi table")
+            conn.execute(text(sql))
+            conn.execute(text(create_index))
+            conn.commit()
+            logger.info("Unified yellow_taxi table created.")
+        else:
+            logger.debug("Unified yellow_taxi table ready.")
