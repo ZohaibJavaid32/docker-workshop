@@ -13,7 +13,7 @@ def create_month_partition(engine , year : int, month: int) -> None:
     check_sql = f"""
         SELECT EXISTS (
             SELECT 1 FROM information_schema.tables
-            WHERE tablename = '{partition_name}'
+            WHERE table_name = '{partition_name}'
         );
     """
 
@@ -34,7 +34,7 @@ def create_month_partition(engine , year : int, month: int) -> None:
             sql = f"""
                 CREATE TABLE IF NOT EXISTS {partition_name}
                 PARTITION OF yellow_taxi
-                FOR VALUES ({year} , {month}) TO ({next_year} , {next_month})
+                FOR VALUES FROM ({year} , {month}) TO ({next_year} , {next_month});
             """
             logger.info(f"Creating partition {partition_name}...")
             conn.execute(text(sql))

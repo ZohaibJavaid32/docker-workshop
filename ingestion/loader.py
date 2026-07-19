@@ -80,7 +80,7 @@ def create_indexes(engine, table : str) -> None:
             check_sql = f"""
                 SELECT EXISTS (
                     SELECT 1 FROM pg_indexes 
-                    WHERE tablename = {table}
+                    WHERE tablename = '{table}'
                     AND indexname = '{index["name"]}'
                 );
             """
@@ -128,8 +128,9 @@ def load_taxi_data(
 
         create_tracking_table(engine)
         create_unified_table(engine)
+        create_month_partition(engine , year , month)
 
-        if is_already_loaded(engine , "yellow_taxi" ,year , month):
+        if is_already_loaded(engine, year, month):
             logger.warning(f"Data for {year}-{month:02d} already loaded. Skipping..." )
             return
         

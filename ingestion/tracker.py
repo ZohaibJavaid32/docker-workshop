@@ -38,31 +38,24 @@ def create_tracking_table(engine) -> None:
             logger.debug("Ingestion table already exists.")
     
 
-def is_already_loaded(engine , table : str, year: int, month: int) -> bool:
+def is_already_loaded(engine, year: int, month: int) -> bool:
 
     """Check if data is loaded for this table."""
 
     sql = text("""
-        SELECT COUNT(*)
-        FROM ingestion_log
-        WHERE table_name = :table
-        AND year = :year
-        AND month = :month
-        AND LOWER(status) = 'success'
+        SELECT EXISTS(
+            SELECT 1 FROM yellow_taxi 
+            WHERE data_year = :year
+            AND data_month = :month
+            LIMIT 1
+        )
     """)
 
-    logger.info(f"Checking success status for '{table}'.")
-    with engine.connect() as conn:
-        count = conn.execute(
-            sql,
-            {
-                "table": table,
-                "year": year,
-                "month": month,
-            },
-        ).scalar()  
-
-    return count > 0
+    logger.info(f"Checking if data exists in yellow_taxi for {year}-{month:02d}...")
+    with engine.begin() as conn:
+        result = conn.execute(sql,{"year": year,"month": month})
+        exists = result.scalar()
+        return exists
 
 def log_ingestion(engine , table :str , year : int , month : int , rows_loaded: int , status : str) -> None:
     """Log metrics for loaded table."""

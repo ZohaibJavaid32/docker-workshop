@@ -40,7 +40,7 @@ def create_unified_table(engine) -> None:
             cbd_congestion_fee      DOUBLE PRECISION,
             data_year               INTEGER,
             data_month              INTEGER
-        )
+        ) PARTITION BY RANGE(data_year , data_month)
     """
 
     create_index = """
